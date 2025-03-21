@@ -2,7 +2,7 @@
   "name": "yaml-formatter",
   "displayName": "yaml-formatter",
   "description": "an extension to format yaml files",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.54.0"
   },
@@ -32,6 +32,16 @@
           "type": "boolean",
           "default": false,
           "description": "Format YAML files automatically on save."
+        },
+        "yamlFormatter.indentation": {
+          "type": "integer",
+          "default": 2,
+          "description": "Number of spaces to use for indentation."
+        },
+        "yamlFormatter.wrapLines": {
+          "type": "integer",
+          "default": -1,
+          "description": "Maximum line width for wrapping (-1 means no limit)."
         }
       }
     },

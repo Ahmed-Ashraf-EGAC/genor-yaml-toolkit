@@ -72,15 +72,22 @@ export function activate(context: vscode.ExtensionContext) {
 	let disposable = vscode.commands.registerCommand('yaml-formatter.formatYaml', async () => {
 		const editor = vscode.window.activeTextEditor;
 		if (editor && editor.document.languageId === 'yaml') {
+			const config = vscode.workspace.getConfiguration('yamlFormatter');
+
+			const indent = config.get<number>('indentation', 2);
+			const lineWidth = config.get<number>('wrapLines', -1);
+
 			const originalText = editor.document.getText();
-			// Extract prompt blocks and replace them with placeholders.
 			const { modifiedText, blocks } = extractPromptBlocks(originalText);
 
 			try {
-				// Parse and re-serialize the modified YAML.
 				const doc = parseDocument(modifiedText);
-				const formattedYaml = doc.toString({ indent: 2, lineWidth: -1 });
-				// Restore the original prompt blocks.
+
+				const formattedYaml = doc.toString({
+					indent,
+					lineWidth
+				});
+
 				const finalYaml = restorePromptBlocks(formattedYaml, blocks);
 
 				await editor.edit(editBuilder => {
@@ -95,7 +102,9 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 	});
+
 	context.subscriptions.push(disposable);
 }
+
 
 export function deactivate() { }
