@@ -3,6 +3,7 @@
   "displayName": "yaml-formatter",
   "description": "an extension to format yaml files",
   "version": "0.0.2",
+  "publisher": "Ahmed Ashraf",
   "engines": {
     "vscode": "^1.54.0"
   },
