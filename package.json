@@ -32,7 +32,7 @@
   "keybindings": [
     {
       "command": "yaml-formatter.formatYaml",
-      "key": "ctrl+alt+f",
+      "key": "shift+alt+f",
       "when": "editorLangId == yaml"
     }
   ],
