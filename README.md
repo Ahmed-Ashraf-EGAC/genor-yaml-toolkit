@@ -1,71 +1,97 @@
-# yaml-formatter README
+# YAML Formatter for VS Code
 
-This is the README for your extension "yaml-formatter". After writing up a brief description, we recommend including the following sections.
+An extension to automatically format YAML files in a consistent way in Visual Studio Code. Made for labor orchestation in GenOr
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- Formats YAML files with **indentation of 2 spaces** and **unlimited line width**.
+- Preserves double quotes around keys that originally had them.
+- Keeps unquoted keys unquoted.
+- Maintains consistent spacing and structure.
+- Supports **Shift + Alt + F** (default VS Code format shortcut).
+- Optionally **formats YAML on save** (configurable in settings).
 
-For example if there is an image subfolder under your extension project workspace:
+## Installation
 
-\!\[feature X\]\(images/feature-x.png\)
+### Install from VSIX (Manual Installation)
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+1. Download the `.vsix` file from the [Releases] (#) (replace with actual link if hosted).
+2. Open **VS Code**.
+3. Press `Ctrl + Shift + P` and select **Extensions: Install from VSIX**.
+4. Choose the downloaded `.vsix` file.
+5. Reload VS Code.
 
-## Requirements
+## Usage
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+### Format YAML Manually
 
-## Extension Settings
+- Open a `.yaml` or `.yml` file.
+- Press `Shift + Alt + F` (**Cmd + Shift + F** on macOS).
+- The file will be formatted automatically.
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+### Format YAML on Save (Optional)
 
-For example:
+You can enable auto-formatting on save:
 
-This extension contributes the following settings:
+1. Open VS Code **Settings** (`Ctrl + ,`).
+2. Search for `yamlFormatter.formatOnSave`.
+3. Enable the setting.
+4. Now, every time you save a YAML file, it will be formatted automatically.
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+Alternatively, add this to your `settings.json`:
 
-## Known Issues
+```json
+{
+  "yamlFormatter.formatOnSave": true
+}
+```
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+## Configuration
 
-## Release Notes
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `yamlFormatter.formatOnSave` | `boolean` | `false` | Automatically format YAML files on save. |
 
-Users appreciate release notes as you update your extension.
+## Development
 
-### 1.0.0
+### Build and Package
 
-Initial release of ...
+If you want to modify or contribute to this extension:
 
-### 1.0.1
+1. Clone the repository.
+2. Install dependencies:
 
-Fixed issue #.
+   ```sh
+   npm install
+   ```
 
-### 1.1.0
+3. Compile the extension:
 
-Added features X, Y, and Z.
+   ```sh
+   npm run compile
+   ```
+
+4. Package it as a `.vsix` file:
+
+   ```sh
+   vsce package
+   ```
+
+### Running in VS Code (Development Mode)
+
+1. Open the project folder in VS Code.
+2. Press `F5` to launch a new VS Code window with the extension loaded.
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+## Issues & Contributions
+
+If you find any issues or want to contribute:
+
+- Open an issue on [GitHub] (#) (replace with actual link if applicable).
+- Submit a pull request with your changes.
 
 ---
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Enjoy seamless YAML formatting in VS Code! 🚀
