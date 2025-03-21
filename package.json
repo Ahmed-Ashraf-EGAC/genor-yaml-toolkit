@@ -27,15 +27,26 @@
           "description": "Format YAML files automatically on save."
         }
       }
-    }
+    },
+    "languages": [
+      {
+        "id": "yaml"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "editor.action.formatDocument",
+        "key": "shift+alt+f",
+        "when": "editorLangId == yaml"
+      }
+    ],
+    "formatters": [
+      {
+        "language": "yaml",
+        "documentFormatting": true
+      }
+    ]
   },
-  "keybindings": [
-    {
-      "command": "yaml-formatter.formatYaml",
-      "key": "shift+alt+f",
-      "when": "editorLangId == yaml"
-    }
-  ],
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
