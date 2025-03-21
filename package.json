@@ -10,6 +10,9 @@
     "type": "git",
     "url": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter"
   },
+  "bugs": {
+    "url": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter/issues"
+  },
   "categories": [
     "Other"
   ],
