@@ -14,8 +14,9 @@
   "bugs": {
     "url": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter/issues"
   },
+  "homepage": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter#readme",
   "categories": [
-    "Other"
+    "Formatters"
   ],
   "activationEvents": [],
   "main": "./out/extension.js",

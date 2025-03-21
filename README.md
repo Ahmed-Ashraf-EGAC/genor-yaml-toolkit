@@ -1,6 +1,6 @@
 # YAML Formatter for VS Code
 
-An extension to automatically format YAML files in a consistent way in Visual Studio Code. Made for labor orchestation in GenOr
+An extension to automatically format YAML files in a consistent way in Visual Studio Code. Made for labor orchestration in GenOr.
 
 ## Features
 
@@ -81,6 +81,10 @@ If you want to modify or contribute to this extension:
 
 1. Open the project folder in VS Code.
 2. Press `F5` to launch a new VS Code window with the extension loaded.
+
+## Changelog
+
+For a detailed list of changes, see the [CHANGELOG](https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter/blob/master/CHANGELOG.md).
 
 ## Issues & Contributions
 
