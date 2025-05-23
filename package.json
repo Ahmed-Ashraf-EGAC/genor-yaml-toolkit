@@ -24,6 +24,10 @@
       {
         "command": "yaml-formatter.formatYaml",
         "title": "Format YAML"
+      },
+      {
+        "command": "yaml-formatter.insertAgent",
+        "title": "GenOr: Insert Agent"
       }
     ],
     "configuration": {
@@ -63,7 +67,22 @@
         "language": "yaml",
         "documentFormatting": true
       }
-    ]
+    ],
+    "submenus": [
+      {
+        "id": "yaml-formatter.agentMenu",
+        "label": "Add Agent"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorLangId == yaml",
+          "command": "yaml-formatter.insertAgent",
+          "group": "yaml-formatter@1"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

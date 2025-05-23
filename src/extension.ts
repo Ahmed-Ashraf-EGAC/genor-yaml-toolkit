@@ -1,16 +1,7 @@
 import * as vscode from 'vscode';
 import { parseDocument } from 'yaml';
+import { agentTemplates } from './agentTemplates';
 
-/**
- * Extracts prompt blocks from the YAML text.
- * A prompt block is detected when a line exactly matches an indent followed by "prompt:" and ">".
- * The entire block (prompt line plus all subsequent lines with more indent) is replaced
- * with a one-line placeholder like:
- *
- *   {indent}prompt: "@@PROMPT_BLOCK_0@@"
- *
- * and the original block is stored.
- */
 function extractPromptBlocks(text: string): { modifiedText: string; blocks: string[] } {
 	const lines = text.split(/\r?\n/);
 	const blocks: string[] = [];
@@ -104,6 +95,93 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
+
+	let addAgentCommand = vscode.commands.registerCommand('yaml-formatter.addAgent', async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor || editor.document.languageId !== 'yaml') {
+			return;
+		}
+
+		const selection = await vscode.window.showQuickPick(
+			agentTemplates.map(t => t.name),
+			{
+				placeHolder: 'Select an agent template'
+			}
+		);
+
+		if (!selection) {
+			return;
+		}
+
+		const template = agentTemplates.find(t => t.name === selection)?.template;
+		if (!template) {
+			return;
+		}
+
+		// Get the current indentation level
+		const position = editor.selection.active;
+		const line = editor.document.lineAt(position.line);
+		const currentIndent = line.text.match(/^\s*/)?.[0] || '';
+
+		// Indent the template
+		const indentedTemplate = template
+			.split('\n')
+			.map(line => currentIndent + line)
+			.join('\n');
+
+		await editor.edit(editBuilder => {
+			editBuilder.insert(position, indentedTemplate + '\n');
+		});
+	});
+
+	context.subscriptions.push(addAgentCommand);
+
+	let insertAgentCommand = vscode.commands.registerCommand('yaml-formatter.insertAgent', async () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor || editor.document.languageId !== 'yaml') {
+			return;
+		}
+
+		// Simplified quick pick that only shows names
+		const selection = await vscode.window.showQuickPick(
+			agentTemplates.map(t => t.name),
+			{
+				placeHolder: 'Select an agent template'
+			}
+		);
+
+		if (!selection) {
+			return;
+		}
+
+		const template = agentTemplates.find(t => t.name === selection)?.template;
+		if (!template) {
+			return;
+		}
+
+		// Get current indentation and insert template
+		const position = editor.selection.active;
+		const line = editor.document.lineAt(position.line);
+		const currentIndent = line.text.match(/^\s*/)?.[0] || '';
+
+		const indentedTemplate = template
+			.split('\n')
+			.map((line, index) => {
+				// Don't indent the first line (agent name)
+				if (index === 0) {
+					return line;
+				}
+				// Indent all other lines
+				return currentIndent + line;
+			})
+			.join('\n');
+
+		await editor.edit(editBuilder => {
+			editBuilder.insert(position, indentedTemplate + '\n');
+		});
+	});
+
+	context.subscriptions.push(insertAgentCommand);
 }
 
 
