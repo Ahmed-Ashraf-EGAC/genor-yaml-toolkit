@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.0.3] - 2025-05-23
+
+### ✨ New Features
+
+#### 1️⃣ Agent Template Support
+
+Right-click menu now includes agent template insertion for quick YAML scaffolding.
+
+#### 🧠 Available Agent Templates
+
+- Code Agent
+- LLM Agent
+- Aggregator
+- IfElse
+- Iterator
+
+#### 📝 How to Use
+
+1. Right-click in any YAML file
+2. Select "Add Agent"
+3. Choose from available templates
+
+---
+
 ## [0.0.2] - 2025-03-21
 
 ### ✨ New Features
