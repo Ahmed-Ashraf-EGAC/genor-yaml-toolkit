@@ -27,7 +27,7 @@
       },
       {
         "command": "yaml-formatter.insertAgent",
-        "title": "Insert Agent"
+        "title": "GenOr: Insert Agent"
       }
     ],
     "configuration": {
