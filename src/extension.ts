@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { parseDocument } from 'yaml';
 import { agentTemplates } from './agentTemplates';
 import { activateLanguageFeatures } from './yamlLanguageConfiguration';
+import { lintYaml } from './yamlLinter';
 
 function extractPromptBlocks(text: string): { modifiedText: string; blocks: string[] } {
     const lines = text.split(/\r?\n/);
@@ -187,7 +188,24 @@ export function activate(context: vscode.ExtensionContext) {
     // Add language features
     const languageFeatures = activateLanguageFeatures();
     context.subscriptions.push(...languageFeatures);
-}
 
+    let lintCommand = vscode.commands.registerCommand('genor-yaml-toolkit.lintYaml', () => {
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.languageId === 'yaml') {
+            lintYaml(editor.document);
+        }
+    });
+
+    context.subscriptions.push(lintCommand);
+
+    // Add automatic linting on save
+    let diagnosticsSubscription = vscode.workspace.onDidSaveTextDocument((document) => {
+        if (document.languageId === 'yaml') {
+            lintYaml(document);
+        }
+    });
+
+    context.subscriptions.push(diagnosticsSubscription);
+}
 
 export function deactivate() { }

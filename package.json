@@ -50,6 +50,11 @@
             {
                 "command": "genor-yaml-toolkit.findAllReferences",
                 "title": "YAML: Find All References Across Files"
+            },
+            {
+                "command": "genor-yaml-toolkit.lintYaml",
+                "title": "Lint YAML",
+                "category": "Genor YAML Toolkit"
             }
         ],
         "configuration": {
