@@ -64,7 +64,7 @@ export function activateLanguageFeatures() {
     });
 
     // Register command for finding references across all files
-    const findAllReferencesCommand = vscode.commands.registerCommand('yaml-formatter.findAllReferences', async () => {
+    const findAllReferencesCommand = vscode.commands.registerCommand('genor-yaml-toolkit.findAllReferences', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.document.languageId !== 'yaml') {
             vscode.window.showErrorMessage('This command only works in YAML files');

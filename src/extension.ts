@@ -61,10 +61,10 @@ function restorePromptBlocks(formattedText: string, blocks: string[]): string {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-    let disposable = vscode.commands.registerCommand('yaml-formatter.formatYaml', async () => {
+    let disposable = vscode.commands.registerCommand('genor-yaml-toolkit.formatYaml', async () => {
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'yaml') {
-            const config = vscode.workspace.getConfiguration('yamlFormatter');
+            const config = vscode.workspace.getConfiguration('genorYamlToolkit');
 
             const indent = config.get<number>('indentation', 2);
             const lineWidth = config.get<number>('wrapLines', -1);
@@ -97,7 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(disposable);
 
-    let addAgentCommand = vscode.commands.registerCommand('yaml-formatter.addAgent', async () => {
+    let addAgentCommand = vscode.commands.registerCommand('genor-yaml-toolkit.addAgent', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.document.languageId !== 'yaml') {
             return;
@@ -137,7 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(addAgentCommand);
 
-    let insertAgentCommand = vscode.commands.registerCommand('yaml-formatter.insertAgent', async () => {
+    let insertAgentCommand = vscode.commands.registerCommand('genor-yaml-toolkit.insertAgent', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.document.languageId !== 'yaml') {
             return;

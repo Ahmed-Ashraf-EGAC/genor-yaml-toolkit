@@ -1,19 +1,19 @@
 {
-    "name": "yaml-formatter",
-    "displayName": "yaml-formatter",
-    "description": "an extension to format yaml files",
-    "version": "0.0.3",
+    "name": "genor-yaml-toolkit",
+    "displayName": "GenOr YAML Toolkit",
+    "description": "A toolkit for working with YAML files in GenOr workflows",
+    "version": "0.1.0",
     "engines": {
         "vscode": "^1.54.0"
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter"
+        "url": "https://github.com/Ahmed-Ashraf-EGAC/genor-yaml-toolkit"
     },
     "bugs": {
-        "url": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter/issues"
+        "url": "https://github.com/Ahmed-Ashraf-EGAC/genor-yaml-toolkit/issues"
     },
-    "homepage": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter#readme",
+    "homepage": "https://github.com/Ahmed-Ashraf-EGAC/genor-yaml-toolkit#readme",
     "categories": [
         "Formatters"
     ],
@@ -38,32 +38,32 @@
         ],
         "commands": [
             {
-                "command": "yaml-formatter.formatYaml",
+                "command": "genor-yaml-toolkit.formatYaml",
                 "title": "Format YAML"
             },
             {
-                "command": "yaml-formatter.insertAgent",
+                "command": "genor-yaml-toolkit.insertAgent",
                 "title": "GenOr: Insert Agent"
             },
             {
-                "command": "yaml-formatter.findAllReferences",
+                "command": "genor-yaml-toolkit.findAllReferences",
                 "title": "YAML: Find All References Across Files"
             }
         ],
         "configuration": {
-            "title": "YAML Formatter",
+            "title": "GenOr YAML Toolkit",
             "properties": {
-                "yamlFormatter.formatOnSave": {
+                "genorYamlToolkit.formatOnSave": {
                     "type": "boolean",
                     "default": false,
                     "description": "Format YAML files automatically on save."
                 },
-                "yamlFormatter.indentation": {
+                "genorYamlToolkit.indentation": {
                     "type": "integer",
                     "default": 2,
                     "description": "Number of spaces to use for indentation."
                 },
-                "yamlFormatter.wrapLines": {
+                "genorYamlToolkit.wrapLines": {
                     "type": "integer",
                     "default": -1,
                     "description": "Maximum line width for wrapping (-1 means no limit)."
@@ -77,7 +77,7 @@
                 "when": "editorLangId == yaml"
             },
             {
-                "command": "yaml-formatter.findAllReferences",
+                "command": "genor-yaml-toolkit.findAllReferences",
                 "key": "ctrl+shift+f12",
                 "when": "editorLangId == yaml"
             }
@@ -90,7 +90,7 @@
         ],
         "submenus": [
             {
-                "id": "yaml-formatter.agentMenu",
+                "id": "genor-yaml-toolkit.agentMenu",
                 "label": "Add Agent"
             }
         ],
@@ -98,13 +98,13 @@
             "editor/context": [
                 {
                     "when": "editorLangId == yaml",
-                    "command": "yaml-formatter.insertAgent",
-                    "group": "yaml-formatter@1"
+                    "command": "genor-yaml-toolkit.insertAgent",
+                    "group": "genor-yaml-toolkit@1"
                 },
                 {
                     "when": "editorLangId == yaml",
-                    "command": "yaml-formatter.findAllReferences",
-                    "group": "yaml-formatter@2"
+                    "command": "genor-yaml-toolkit.findAllReferences",
+                    "group": "genor-yaml-toolkit@2"
                 }
             ]
         }
