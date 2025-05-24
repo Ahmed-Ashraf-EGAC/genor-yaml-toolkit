@@ -31,7 +31,7 @@ export function activateLanguageFeatures() {
             const references: vscode.Location[] = [];
             const wordRange = document.getWordRangeAtPosition(position);
             if (!wordRange) {
-                return references;
+                throw new Error('No references found');
             }
 
             const word = document.getText(wordRange);
@@ -53,6 +53,10 @@ export function activateLanguageFeatures() {
                         ));
                     }
                 }
+            }
+
+            if (references.length === 1) {
+                throw new Error(`No references found for node "${word}"`);
             }
 
             return references;
