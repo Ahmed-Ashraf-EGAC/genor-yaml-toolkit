@@ -1,111 +1,136 @@
 {
-  "name": "yaml-formatter",
-  "displayName": "yaml-formatter",
-  "description": "an extension to format yaml files",
-  "version": "0.0.3",
-  "engines": {
-    "vscode": "^1.54.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter"
-  },
-  "bugs": {
-    "url": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter/issues"
-  },
-  "homepage": "https://github.com/Ahmed-Ashraf-EGAC/yaml-formatter#readme",
-  "categories": [
-    "Formatters"
-  ],
-  "activationEvents": [],
-  "main": "./out/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "yaml-formatter.formatYaml",
-        "title": "Format YAML"
-      },
-      {
-        "command": "yaml-formatter.insertAgent",
-        "title": "GenOr: Insert Agent"
-      }
-    ],
-    "configuration": {
-      "title": "YAML Formatter",
-      "properties": {
-        "yamlFormatter.formatOnSave": {
-          "type": "boolean",
-          "default": false,
-          "description": "Format YAML files automatically on save."
-        },
-        "yamlFormatter.indentation": {
-          "type": "integer",
-          "default": 2,
-          "description": "Number of spaces to use for indentation."
-        },
-        "yamlFormatter.wrapLines": {
-          "type": "integer",
-          "default": -1,
-          "description": "Maximum line width for wrapping (-1 means no limit)."
-        }
-      }
+    "name": "genor-yaml-toolkit",
+    "displayName": "GenOr YAML Toolkit",
+    "description": "A toolkit for working with YAML files in GenOr workflows",
+    "version": "0.1.0",
+    "engines": {
+        "vscode": "^1.54.0"
     },
-    "languages": [
-      {
-        "id": "yaml"
-      }
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Ahmed-Ashraf-EGAC/genor-yaml-toolkit"
+    },
+    "bugs": {
+        "url": "https://github.com/Ahmed-Ashraf-EGAC/genor-yaml-toolkit/issues"
+    },
+    "homepage": "https://github.com/Ahmed-Ashraf-EGAC/genor-yaml-toolkit#readme",
+    "categories": [
+        "Formatters"
     ],
-    "keybindings": [
-      {
-        "command": "editor.action.formatDocument",
-        "key": "shift+alt+f",
-        "when": "editorLangId == yaml"
-      }
+    "activationEvents": [
+        "onLanguage:yaml"
     ],
-    "formatters": [
-      {
-        "language": "yaml",
-        "documentFormatting": true
-      }
-    ],
-    "submenus": [
-      {
-        "id": "yaml-formatter.agentMenu",
-        "label": "Add Agent"
-      }
-    ],
-    "menus": {
-      "editor/context": [
-        {
-          "when": "editorLangId == yaml",
-          "command": "yaml-formatter.insertAgent",
-          "group": "yaml-formatter@1"
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "yaml",
+                "aliases": [
+                    "YAML",
+                    "yaml"
+                ],
+                "extensions": [
+                    ".yml",
+                    ".yaml"
+                ],
+                "configuration": "./yaml-language-configuration.json"
+            }
+        ],
+        "commands": [
+            {
+                "command": "genor-yaml-toolkit.formatYaml",
+                "title": "Format YAML"
+            },
+            {
+                "command": "genor-yaml-toolkit.insertAgent",
+                "title": "GenOr: Insert Agent"
+            },
+            {
+                "command": "genor-yaml-toolkit.findAllReferences",
+                "title": "YAML: Find All References Across Files"
+            }
+        ],
+        "configuration": {
+            "title": "GenOr YAML Toolkit",
+            "properties": {
+                "genorYamlToolkit.formatOnSave": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Format YAML files automatically on save."
+                },
+                "genorYamlToolkit.indentation": {
+                    "type": "integer",
+                    "default": 2,
+                    "description": "Number of spaces to use for indentation."
+                },
+                "genorYamlToolkit.wrapLines": {
+                    "type": "integer",
+                    "default": -1,
+                    "description": "Maximum line width for wrapping (-1 means no limit)."
+                }
+            }
+        },
+        "keybindings": [
+            {
+                "command": "editor.action.formatDocument",
+                "key": "shift+alt+f",
+                "when": "editorLangId == yaml"
+            },
+            {
+                "command": "genor-yaml-toolkit.findAllReferences",
+                "key": "ctrl+shift+f12",
+                "when": "editorLangId == yaml"
+            }
+        ],
+        "formatters": [
+            {
+                "language": "yaml",
+                "documentFormatting": true
+            }
+        ],
+        "submenus": [
+            {
+                "id": "genor-yaml-toolkit.agentMenu",
+                "label": "Add Agent"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "when": "editorLangId == yaml",
+                    "command": "genor-yaml-toolkit.insertAgent",
+                    "group": "genor-yaml-toolkit@1"
+                },
+                {
+                    "when": "editorLangId == yaml",
+                    "command": "genor-yaml-toolkit.findAllReferences",
+                    "group": "genor-yaml-toolkit@2"
+                }
+            ]
         }
-      ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src",
+        "test": "vscode-test"
+    },
+    "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "20.x",
+        "@types/vscode": "^1.54.0",
+        "@typescript-eslint/eslint-plugin": "^8.25.0",
+        "@typescript-eslint/parser": "^8.25.0",
+        "@vscode/test-cli": "^0.0.10",
+        "@vscode/test-electron": "^2.4.1",
+        "eslint": "^9.21.0",
+        "typescript": "^5.7.3"
+    },
+    "dependencies": {
+        "js-yaml": "^4.1.0",
+        "yaml": "^2.7.0"
     }
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src",
-    "test": "vscode-test"
-  },
-  "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "20.x",
-    "@types/vscode": "^1.54.0",
-    "@typescript-eslint/eslint-plugin": "^8.25.0",
-    "@typescript-eslint/parser": "^8.25.0",
-    "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1",
-    "eslint": "^9.21.0",
-    "typescript": "^5.7.3"
-  },
-  "dependencies": {
-    "js-yaml": "^4.1.0",
-    "yaml": "^2.7.0"
-  }
 }
