@@ -113,13 +113,23 @@ async function findReferencesAcrossFiles(nodeName: string): Promise<void> {
             // Create a references array to store all found references
             const allReferences: vscode.Location[] = [];
 
+            // Calculate total files for progress reporting
+            const totalFiles = yamlFiles.length;
+            let filesProcessed = 0;
+
             // Process each file
             for (const fileUri of yamlFiles) {
                 if (token.isCancellationRequested) {
                     break;
                 }
 
-                progress.report({ message: `Searching in ${vscode.workspace.asRelativePath(fileUri)}` });
+                // Update progress bar with percentage
+                filesProcessed++;
+                const progressPercentage = (filesProcessed / totalFiles) * 100;
+                progress.report({
+                    increment: 100 / totalFiles,
+                    message: `${Math.round(progressPercentage)}% complete`
+                });
 
                 try {
                     const document = await vscode.workspace.openTextDocument(fileUri);
