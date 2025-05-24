@@ -4,7 +4,6 @@ export function activateLanguageFeatures() {
     // Register definition provider
     const definitionProvider = vscode.languages.registerDefinitionProvider('yaml', {
         provideDefinition(document: vscode.TextDocument, position: vscode.Position): vscode.Definition | undefined {
-            const lineText = document.lineAt(position.line).text;
             const wordRange = document.getWordRangeAtPosition(position);
             if (!wordRange) {
                 return undefined;
@@ -12,8 +11,9 @@ export function activateLanguageFeatures() {
 
             const word = document.getText(wordRange);
 
-            // Search for node definition
+            // Only search for node definition
             const nodeDefinitionRegex = new RegExp(`^\\s*${word}:\\s*$`);
+
             for (let i = 0; i < document.lineCount; i++) {
                 const line = document.lineAt(i).text;
                 if (nodeDefinitionRegex.test(line)) {
@@ -36,10 +36,11 @@ export function activateLanguageFeatures() {
 
             const word = document.getText(wordRange);
 
-            // Search for references in 'next' sections and other node references
+            // Search for references in 'next' sections, node definitions, and output references
             const referencePatterns = [
                 new RegExp(`^\\s*-\\s*${word}\\s*$`), // next: references
                 new RegExp(`^\\s*${word}:\\s*`), // node definitions or references in outputs
+                new RegExp(`{{\\s*${word}\\.outputs`), // output references
             ];
 
             for (let i = 0; i < document.lineCount; i++) {
