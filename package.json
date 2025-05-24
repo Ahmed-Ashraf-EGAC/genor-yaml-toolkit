@@ -44,6 +44,10 @@
             {
                 "command": "yaml-formatter.insertAgent",
                 "title": "GenOr: Insert Agent"
+            },
+            {
+                "command": "yaml-formatter.findAllReferences",
+                "title": "YAML: Find All References Across Files"
             }
         ],
         "configuration": {
@@ -71,6 +75,11 @@
                 "command": "editor.action.formatDocument",
                 "key": "shift+alt+f",
                 "when": "editorLangId == yaml"
+            },
+            {
+                "command": "yaml-formatter.findAllReferences",
+                "key": "ctrl+shift+f12",
+                "when": "editorLangId == yaml"
             }
         ],
         "formatters": [
@@ -91,6 +100,11 @@
                     "when": "editorLangId == yaml",
                     "command": "yaml-formatter.insertAgent",
                     "group": "yaml-formatter@1"
+                },
+                {
+                    "when": "editorLangId == yaml",
+                    "command": "yaml-formatter.findAllReferences",
+                    "group": "yaml-formatter@2"
                 }
             ]
         }
