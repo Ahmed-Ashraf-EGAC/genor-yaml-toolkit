@@ -2,6 +2,8 @@
     "name": "genor-yaml-toolkit",
     "displayName": "GenOr YAML Toolkit",
     "description": "A toolkit for working with YAML files in GenOr workflows",
+    "publisher": "Ahmed-Ashraf",
+    "icon": "icon.png",
     "version": "0.1.0",
     "engines": {
         "vscode": "^1.54.0"
