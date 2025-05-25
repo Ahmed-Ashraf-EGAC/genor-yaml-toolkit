@@ -14,6 +14,7 @@ export const agentTemplates: AgentTemplate[] = [
     agent_path: "genor_agents.custom_code.code_agent.CodeAgent"
     init_kwargs:
       code: >
+        def main():
     call_kwargs:
       sample_input: "{{ }}"
   outputs:
