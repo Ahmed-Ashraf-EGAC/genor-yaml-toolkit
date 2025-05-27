@@ -41,14 +41,41 @@ export function lintYaml(document: vscode.TextDocument) {
     const nodeReferences = new Set<string>();
     const definedNodes = new Set<string>();
 
-    // 2. Check each node
+    // Validate nodes recursively
+    lintErrors.push(...validateNodes(nodes, document, nodeReferences, definedNodes));
+
+    // Check for unresolved references
+    nodeReferences.forEach(ref => {
+        if (!definedNodes.has(ref)) {
+            lintErrors.push(createLintError(
+                0, 0,
+                `Unresolved node reference: ${ref}`,
+                vscode.DiagnosticSeverity.Error
+            ));
+        }
+    });
+
+    // Convert LintErrors to Diagnostics and set them
+    collection.set(document.uri, lintErrors.map(convertLintErrorToDiagnostic));
+}
+
+function validateNodes(
+    nodes: YAMLMap, 
+    document: vscode.TextDocument, 
+    nodeReferences: Set<string>, 
+    definedNodes: Set<string>,
+    parentNodeName?: string
+): LintError[] {
+    const lintErrors: LintError[] = [];
+
     for (const pair of nodes.items) {
         const nodeKey = pair.key;
         const nodeValue = pair.value;
 
         // Get the node name as string
         const nodeName = typeof nodeKey === 'string' ? nodeKey : String(nodeKey);
-        definedNodes.add(nodeName);
+        const fullNodeName = parentNodeName ? `${parentNodeName}.${nodeName}` : nodeName;
+        definedNodes.add(fullNodeName);
 
         // Find the line number for this node
         const lineNo = findNodeLine(document, nodeName);
@@ -58,7 +85,7 @@ export function lintYaml(document: vscode.TextDocument) {
             continue;
         }
 
-        // Check if nodeValue is a YAMLMap
+        // Check if nodeValue is a valid object with proper structure
         if (nodeValue && typeof nodeValue === 'object') {
             // Check required fields
             lintErrors.push(...checkRequiredFields(nodeValue, nodeName, lineNo));
@@ -77,6 +104,17 @@ export function lintYaml(document: vscode.TextDocument) {
             if (indentationError) {
                 lintErrors.push(indentationError);
             }
+
+            // Check for nested nodes in iterator and while types
+            // Type guard to ensure we can safely access properties
+            const hasGetMethod = 'get' in nodeValue && typeof (nodeValue as any).get === 'function';
+            const nodeType = hasGetMethod 
+                ? (nodeValue as any).get('type') 
+                : (nodeValue as any)['type'];
+                
+            if (nodeType && (nodeType.toString().toLowerCase() === 'iterator' || nodeType.toString().toLowerCase() === 'while')) {
+                lintErrors.push(...validateNestedNodes(nodeValue, document, nodeReferences, definedNodes, nodeName));
+            }
         } else {
             // Node value is not an object
             lintErrors.push(createLintError(
@@ -87,19 +125,7 @@ export function lintYaml(document: vscode.TextDocument) {
         }
     }
 
-    // 3. Check for unresolved references
-    nodeReferences.forEach(ref => {
-        if (!definedNodes.has(ref)) {
-            lintErrors.push(createLintError(
-                0, 0,
-                `Unresolved node reference: ${ref}`,
-                vscode.DiagnosticSeverity.Error
-            ));
-        }
-    });
-
-    // Convert LintErrors to Diagnostics and set them
-    collection.set(document.uri, lintErrors.map(convertLintErrorToDiagnostic));
+    return lintErrors;
 }
 
 function collectNodeReferences(node: any, nodeReferences: Set<string>) {
@@ -118,6 +144,45 @@ function collectNodeReferences(node: any, nodeReferences: Set<string>) {
             nodeReferences.add(next);
         }
     }
+}
+
+function validateNestedNodes(
+    node: any,
+    document: vscode.TextDocument,
+    nodeReferences: Set<string>,
+    definedNodes: Set<string>,
+    parentNodeName: string
+): LintError[] {
+    const lintErrors: LintError[] = [];
+
+    // Get the inputs field
+    const inputs = node.get ? node.get('inputs') : node['inputs'];
+    if (!inputs) {
+        return lintErrors;
+    }
+
+    // Get the subgraph field from inputs
+    const subgraph = inputs.get ? inputs.get('subgraph') : inputs['subgraph'];
+    if (!subgraph) {
+        return lintErrors;
+    }
+
+    // Get the nodes field from subgraph
+    const nestedNodes = subgraph.get ? subgraph.get('nodes') : subgraph['nodes'];
+    if (!nestedNodes || !(nestedNodes instanceof YAMLMap)) {
+        const lineNo = findNodeLine(document, parentNodeName);
+        lintErrors.push(createLintError(
+            lineNo, 0,
+            `Node "${parentNodeName}" has invalid or missing subgraph.nodes structure`,
+            vscode.DiagnosticSeverity.Error
+        ));
+        return lintErrors;
+    }
+
+    // Recursively validate nested nodes
+    lintErrors.push(...validateNodes(nestedNodes, document, nodeReferences, definedNodes, parentNodeName));
+
+    return lintErrors;
 }
 
 function checkRequiredFields(node: any, nodeName: string, line: number): LintError[] {
@@ -167,6 +232,31 @@ function checkRequiredFields(node: any, nodeName: string, line: number): LintErr
             ));
         }
     });
+
+    // Additional validation for iterator and while types
+    const nodeTypeStr = nodeType.toString().toLowerCase();
+    if (nodeTypeStr === 'iterator' || nodeTypeStr === 'while') {
+        const inputs = node.get ? node.get('inputs') : node['inputs'];
+        if (inputs) {
+            const subgraph = inputs.get ? inputs.get('subgraph') : inputs['subgraph'];
+            if (!subgraph) {
+                errors.push(createLintError(
+                    line, 0,
+                    `Node "${nodeName}" of type "${nodeType}" is missing required field: inputs.subgraph`,
+                    vscode.DiagnosticSeverity.Error
+                ));
+            } else {
+                const nestedNodes = subgraph.get ? subgraph.get('nodes') : subgraph['nodes'];
+                if (!nestedNodes) {
+                    errors.push(createLintError(
+                        line, 0,
+                        `Node "${nodeName}" of type "${nodeType}" is missing required field: inputs.subgraph.nodes`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
+                }
+            }
+        }
+    }
 
     return errors;
 }
