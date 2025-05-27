@@ -15,25 +15,25 @@ export function lintYaml(document: vscode.TextDocument) {
     // Clear diagnostics for this document
     collection.delete(document.uri);
 
-    const diagnostics: vscode.Diagnostic[] = [];
+    const lintErrors: LintError[] = [];
     let doc: Document.Parsed;
 
     try {
         doc = parseDocument(document.getText());
     } catch (e: any) {
-        diagnostics.push(new vscode.Diagnostic(
-            new vscode.Range(0, 0, 0, 1),
-            `YAML Syntax Error: ${e.message}`,
-            vscode.DiagnosticSeverity.Error
-        ));
-        collection.set(document.uri, diagnostics);
+        lintErrors.push({
+            message: `YAML Syntax Error: ${e.message}`,
+            severity: vscode.DiagnosticSeverity.Error,
+            range: new vscode.Range(0, 0, 0, 1)
+        });
+        collection.set(document.uri, lintErrors.map(convertLintErrorToDiagnostic));
         return;
     }
 
     const nodes = doc.get('nodes');
     if (!nodes || !(nodes instanceof YAMLMap)) {
-        diagnostics.push(createDiagnostic(0, 0, "Missing or invalid 'nodes' section", vscode.DiagnosticSeverity.Error));
-        collection.set(document.uri, diagnostics);
+        lintErrors.push(createLintError(0, 0, "Missing or invalid 'nodes' section", vscode.DiagnosticSeverity.Error));
+        collection.set(document.uri, lintErrors.map(convertLintErrorToDiagnostic));
         return;
     }
 
@@ -61,22 +61,25 @@ export function lintYaml(document: vscode.TextDocument) {
         // Check if nodeValue is a YAMLMap
         if (nodeValue && typeof nodeValue === 'object') {
             // Check required fields
-            checkRequiredFields(nodeValue, nodeName, lineNo, diagnostics);
+            lintErrors.push(...checkRequiredFields(nodeValue, nodeName, lineNo));
 
             // Check data types
-            checkDataTypes(nodeValue, nodeName, lineNo, diagnostics);
+            lintErrors.push(...checkDataTypes(nodeValue, nodeName, lineNo));
 
             // Check for empty values
-            checkEmptyValues(nodeValue, nodeName, lineNo, diagnostics);
+            lintErrors.push(...checkEmptyValues(nodeValue, nodeName, lineNo));
 
             // Collect node references
             collectNodeReferences(nodeValue, nodeReferences);
 
             // Check indentation
-            checkIndentation(document, lineNo, diagnostics);
+            const indentationError = checkIndentation(document, lineNo);
+            if (indentationError) {
+                lintErrors.push(indentationError);
+            }
         } else {
             // Node value is not an object
-            diagnostics.push(createDiagnostic(
+            lintErrors.push(createLintError(
                 lineNo, 0,
                 `Node "${nodeName}" has invalid structure`,
                 vscode.DiagnosticSeverity.Error
@@ -87,7 +90,7 @@ export function lintYaml(document: vscode.TextDocument) {
     // 3. Check for unresolved references
     nodeReferences.forEach(ref => {
         if (!definedNodes.has(ref)) {
-            diagnostics.push(createDiagnostic(
+            lintErrors.push(createLintError(
                 0, 0,
                 `Unresolved node reference: ${ref}`,
                 vscode.DiagnosticSeverity.Error
@@ -95,8 +98,8 @@ export function lintYaml(document: vscode.TextDocument) {
         }
     });
 
-    // Set new diagnostics
-    collection.set(document.uri, diagnostics);
+    // Convert LintErrors to Diagnostics and set them
+    collection.set(document.uri, lintErrors.map(convertLintErrorToDiagnostic));
 }
 
 function collectNodeReferences(node: any, nodeReferences: Set<string>) {
@@ -117,7 +120,8 @@ function collectNodeReferences(node: any, nodeReferences: Set<string>) {
     }
 }
 
-function checkRequiredFields(node: any, nodeName: string, line: number, diagnostics: vscode.Diagnostic[]) {
+function checkRequiredFields(node: any, nodeName: string, line: number): LintError[] {
+    const errors: LintError[] = [];
     const requiredFields = ['type', 'name'];
 
     requiredFields.forEach(field => {
@@ -126,16 +130,20 @@ function checkRequiredFields(node: any, nodeName: string, line: number, diagnost
 
         // Check if the field exists and has a non-empty value
         if (value === undefined || value === null || value.toString().trim() === '') {
-            diagnostics.push(createDiagnostic(
+            errors.push(createLintError(
                 line, 0,
                 `Node "${nodeName}" is missing required field: ${field}`,
                 vscode.DiagnosticSeverity.Error
             ));
         }
     });
+
+    return errors;
 }
 
-function checkDataTypes(node: any, nodeName: string, line: number, diagnostics: vscode.Diagnostic[]) {
+function checkDataTypes(node: any, nodeName: string, line: number): LintError[] {
+    const errors: LintError[] = [];
+
     // Get outputs field
     const outputs = node.get ? node.get('outputs') : node.outputs;
 
@@ -147,7 +155,7 @@ function checkDataTypes(node: any, nodeName: string, line: number, diagnostics: 
         const isRegularArray = Array.isArray(outputs);
 
         if (!isYAMLArray && !isRegularArray && typeof outputs !== 'object') {
-            diagnostics.push(createDiagnostic(
+            errors.push(createLintError(
                 line, 0,
                 `Node "${nodeName}": 'outputs' must be an array or object`,
                 vscode.DiagnosticSeverity.Error
@@ -168,16 +176,20 @@ function checkDataTypes(node: any, nodeName: string, line: number, diagnostics: 
         const isString = typeof next === 'string';
 
         if (!isYAMLArray && !isRegularArray && !isString) {
-            diagnostics.push(createDiagnostic(
+            errors.push(createLintError(
                 line, 0,
                 `Node "${nodeName}": 'next' must be an array or string`,
                 vscode.DiagnosticSeverity.Error
             ));
         }
     }
+
+    return errors;
 }
 
-function checkEmptyValues(node: any, nodeName: string, line: number, diagnostics: vscode.Diagnostic[]) {
+function checkEmptyValues(node: any, nodeName: string, line: number): LintError[] {
+    const errors: LintError[] = [];
+
     // For YAML nodes, we need to iterate differently
     if (node.items) {
         // It's a YAMLMap
@@ -186,7 +198,7 @@ function checkEmptyValues(node: any, nodeName: string, line: number, diagnostics
             const value = pair.value;
 
             if (value === null || value === undefined || value === '') {
-                diagnostics.push(createDiagnostic(
+                errors.push(createLintError(
                     line, 0,
                     `Node "${nodeName}": '${key}' has empty value`,
                     vscode.DiagnosticSeverity.Warning
@@ -197,7 +209,7 @@ function checkEmptyValues(node: any, nodeName: string, line: number, diagnostics
         // Regular object
         Object.entries(node).forEach(([key, value]) => {
             if (value === null || value === undefined || value === '') {
-                diagnostics.push(createDiagnostic(
+                errors.push(createLintError(
                     line, 0,
                     `Node "${nodeName}": '${key}' has empty value`,
                     vscode.DiagnosticSeverity.Warning
@@ -205,22 +217,52 @@ function checkEmptyValues(node: any, nodeName: string, line: number, diagnostics
             }
         });
     }
+
+    return errors;
 }
 
-function checkIndentation(document: vscode.TextDocument, line: number, diagnostics: vscode.Diagnostic[]) {
+function checkIndentation(document: vscode.TextDocument, line: number): LintError | null {
     if (line < 0 || line >= document.lineCount) {
-        return;
+        return null;
     }
 
     const lineText = document.lineAt(line).text;
     const indentMatch = lineText.match(/^(\s+)/);
     if (indentMatch && (indentMatch[1].includes('\t') && indentMatch[1].includes(' '))) {
-        diagnostics.push(createDiagnostic(
+        return createLintError(
             line, 0,
             "Mixed tab and space indentation",
             vscode.DiagnosticSeverity.Warning
-        ));
+        );
     }
+
+    return null;
+}
+
+function createLintError(
+    line: number,
+    character: number,
+    message: string,
+    severity: vscode.DiagnosticSeverity
+): LintError {
+    return {
+        message,
+        severity,
+        range: new vscode.Range(
+            line,
+            character,
+            line,
+            character + 1
+        )
+    };
+}
+
+function convertLintErrorToDiagnostic(lintError: LintError): vscode.Diagnostic {
+    return new vscode.Diagnostic(
+        lintError.range,
+        lintError.message,
+        lintError.severity
+    );
 }
 
 function findNodeLine(document: vscode.TextDocument, nodeName: string): number {
@@ -264,22 +306,4 @@ function findNodeLine(document: vscode.TextDocument, nodeName: string): number {
 
 function escapeRegExp(string: string): string {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function createDiagnostic(
-    line: number,
-    character: number,
-    message: string,
-    severity: vscode.DiagnosticSeverity
-): vscode.Diagnostic {
-    return new vscode.Diagnostic(
-        new vscode.Range(
-            line,
-            character,
-            line,
-            character + 1
-        ),
-        message,
-        severity
-    );
 }
