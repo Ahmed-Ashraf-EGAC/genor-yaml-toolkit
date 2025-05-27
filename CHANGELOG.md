@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.1] - 2025-05-27
+
+### 🎉 Major New Features
+#### **Introduced YAML Linter** with real-time validation and VS Code diagnostics
+
+- **Node Type Validation** for agent, ifelse, aggregator, iterator, and while nodes
+- **Required Fields Validation** with node-specific requirements
+- **Empty Field Detection** for outputs, next fields, and array items
+
 ## [0.1.0] - 2025-05-24
 
 ### ✨ New Features

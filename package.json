@@ -4,7 +4,7 @@
     "description": "A toolkit for working with YAML files in GenOr workflows",
     "publisher": "Ahmed-Ashraf",
     "icon": "icon.png",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "engines": {
         "vscode": "^1.54.0"
     },
