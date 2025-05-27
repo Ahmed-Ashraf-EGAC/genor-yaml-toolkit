@@ -122,17 +122,47 @@ function collectNodeReferences(node: any, nodeReferences: Set<string>) {
 
 function checkRequiredFields(node: any, nodeName: string, line: number): LintError[] {
     const errors: LintError[] = [];
-    const requiredFields = ['type', 'name'];
 
+    // Get the node type first
+    const nodeType = node.get ? node.get('type') : node['type'];
+
+    // If no type is specified, skip validation
+    if (!nodeType) {
+        return errors;
+    }
+
+    // Define required fields for each node type
+    const requiredFieldsByType: { [key: string]: string[] } = {
+        'agent': ['type', 'name', "inputs", "outputs"],
+        'ifelse': ['type', 'name', "conditions"],
+        'aggregator': ['type', 'name', 'outputs'],
+        'iterator': ['type', 'name', 'inputs'],
+        'while': ['type', 'name', 'inputs'],
+    };
+
+    const requiredFields = requiredFieldsByType[nodeType.toString().toLowerCase()];
+
+    // If node type is not recognized, only check for basic fields
+    if (!requiredFields) {
+        errors.push(createLintError(
+            line, 0,
+            `Node "${nodeName}" has unknown type: ${nodeType}`,
+            vscode.DiagnosticSeverity.Warning
+        ));
+        return errors;
+    }
+
+    // Check each required field for this node type
     requiredFields.forEach(field => {
-        // Get the value using get method if available (for YAML nodes)
         const value = node.get ? node.get(field) : node[field];
 
         // Check if the field exists and has a non-empty value
-        if (value === undefined || value === null || value.toString().trim() === '') {
+        if (value === undefined || value === null ||
+            (typeof value === 'string' && value.trim() === '') ||
+            (value && typeof value === 'object' && value.toString && value.toString().trim() === '')) {
             errors.push(createLintError(
                 line, 0,
-                `Node "${nodeName}" is missing required field: ${field}`,
+                `Node "${nodeName}" of type "${nodeType}" is missing required field: ${field}`,
                 vscode.DiagnosticSeverity.Error
             ));
         }
