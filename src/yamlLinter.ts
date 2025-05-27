@@ -105,15 +105,24 @@ function validateNodes(
                 lintErrors.push(indentationError);
             }
 
-            // Check for nested nodes in iterator and while types
-            // Type guard to ensure we can safely access properties
+            // Always check for nested nodes if there's a subgraph structure
+            // This ensures we validate nested nodes even if the parent node has issues
             const hasGetMethod = 'get' in nodeValue && typeof (nodeValue as any).get === 'function';
-            const nodeType = hasGetMethod
-                ? (nodeValue as any).get('type')
-                : (nodeValue as any)['type'];
+            const inputs = hasGetMethod ? (nodeValue as any).get('inputs') : (nodeValue as any)['inputs'];
 
-            if (nodeType && (nodeType.toString().toLowerCase() === 'iterator' || nodeType.toString().toLowerCase() === 'while')) {
-                lintErrors.push(...validateNestedNodes(nodeValue, document, nodeReferences, definedNodes, nodeName));
+            if (inputs) {
+                const inputsHasGet = inputs && typeof inputs === 'object' && 'get' in inputs && typeof inputs.get === 'function';
+                const subgraph = inputsHasGet ? inputs.get('subgraph') : inputs['subgraph'];
+
+                if (subgraph) {
+                    const subgraphHasGet = subgraph && typeof subgraph === 'object' && 'get' in subgraph && typeof subgraph.get === 'function';
+                    const nestedNodes = subgraphHasGet ? subgraph.get('nodes') : subgraph['nodes'];
+
+                    if (nestedNodes && nestedNodes instanceof YAMLMap) {
+                        // Recursively validate nested nodes
+                        lintErrors.push(...validateNodes(nestedNodes, document, nodeReferences, definedNodes, nodeName));
+                    }
+                }
             }
         } else {
             // Node value is not an object
@@ -146,44 +155,6 @@ function collectNodeReferences(node: any, nodeReferences: Set<string>) {
     }
 }
 
-function validateNestedNodes(
-    node: any,
-    document: vscode.TextDocument,
-    nodeReferences: Set<string>,
-    definedNodes: Set<string>,
-    parentNodeName: string
-): LintError[] {
-    const lintErrors: LintError[] = [];
-
-    // Get the inputs field
-    const inputs = node.get ? node.get('inputs') : node['inputs'];
-    if (!inputs) {
-        return lintErrors;
-    }
-
-    // Get the subgraph field from inputs
-    const subgraph = inputs.get ? inputs.get('subgraph') : inputs['subgraph'];
-    if (!subgraph) {
-        return lintErrors;
-    }
-
-    // Get the nodes field from subgraph
-    const nestedNodes = subgraph.get ? subgraph.get('nodes') : subgraph['nodes'];
-    if (!nestedNodes || !(nestedNodes instanceof YAMLMap)) {
-        const lineNo = findNodeLine(document, parentNodeName);
-        lintErrors.push(createLintError(
-            lineNo, 0,
-            `Node "${parentNodeName}" has invalid or missing subgraph.nodes structure`,
-            vscode.DiagnosticSeverity.Error
-        ));
-        return lintErrors;
-    }
-
-    // Recursively validate nested nodes
-    lintErrors.push(...validateNodes(nestedNodes, document, nodeReferences, definedNodes, parentNodeName));
-
-    return lintErrors;
-}
 
 function checkRequiredFields(node: any, nodeName: string, line: number): LintError[] {
     const errors: LintError[] = [];
@@ -291,6 +262,19 @@ function checkRequiredFields(node: any, nodeName: string, line: number): LintErr
         const inputs = hasGetMethod ? node.get('inputs') : node['inputs'];
         if (inputs) {
             const inputsHasGet = inputs && typeof inputs === 'object' && 'get' in inputs && typeof inputs.get === 'function';
+
+            // Check for iterable field in iterators
+            if (nodeTypeStr === 'iterator') {
+                const iterable = inputsHasGet ? inputs.get('iterable') : inputs['iterable'];
+                if (!iterable || (typeof iterable === 'string' && iterable.trim() === '')) {
+                    errors.push(createLintError(
+                        line, 0,
+                        `Node "${nodeName}" of type "${nodeType}" is missing required field: inputs.iterable`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
+                }
+            }
+
             const subgraph = inputsHasGet ? inputs.get('subgraph') : inputs['subgraph'];
             if (!subgraph) {
                 errors.push(createLintError(
@@ -308,6 +292,48 @@ function checkRequiredFields(node: any, nodeName: string, line: number): LintErr
                         vscode.DiagnosticSeverity.Error
                     ));
                 }
+            }
+        }
+    }
+
+    // Additional validation for ifelse types
+    if (nodeTypeStr === 'ifelse') {
+        const conditions = hasGetMethod ? node.get('conditions') : node['conditions'];
+        if (conditions) {
+            // Check if conditions is an array/sequence
+            const isArray = Array.isArray(conditions) ||
+                (conditions && typeof conditions === 'object' && 'items' in conditions);
+
+            if (isArray) {
+                let hasIfCondition = false;
+
+                // Handle YAML sequence (YAMLSeq) or regular array
+                const conditionsArray = Array.isArray(conditions) ? conditions :
+                    (conditions.items ? conditions.items : []);
+
+                for (const condition of conditionsArray) {
+                    const conditionHasGet = condition && typeof condition === 'object' && 'get' in condition && typeof condition.get === 'function';
+                    const ifField = conditionHasGet ? condition.get('if') : condition['if'];
+
+                    if (ifField) {
+                        hasIfCondition = true;
+                        break;
+                    }
+                }
+
+                if (!hasIfCondition) {
+                    errors.push(createLintError(
+                        line, 0,
+                        `Node "${nodeName}" of type "${nodeType}" is missing required field: conditions.if`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
+                }
+            } else {
+                errors.push(createLintError(
+                    line, 0,
+                    `Node "${nodeName}" of type "${nodeType}" has invalid conditions structure - should be an array`,
+                    vscode.DiagnosticSeverity.Error
+                ));
             }
         }
     }
