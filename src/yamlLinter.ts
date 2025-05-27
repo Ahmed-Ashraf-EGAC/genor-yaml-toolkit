@@ -60,9 +60,9 @@ export function lintYaml(document: vscode.TextDocument) {
 }
 
 function validateNodes(
-    nodes: YAMLMap, 
-    document: vscode.TextDocument, 
-    nodeReferences: Set<string>, 
+    nodes: YAMLMap,
+    document: vscode.TextDocument,
+    nodeReferences: Set<string>,
     definedNodes: Set<string>,
     parentNodeName?: string
 ): LintError[] {
@@ -108,10 +108,10 @@ function validateNodes(
             // Check for nested nodes in iterator and while types
             // Type guard to ensure we can safely access properties
             const hasGetMethod = 'get' in nodeValue && typeof (nodeValue as any).get === 'function';
-            const nodeType = hasGetMethod 
-                ? (nodeValue as any).get('type') 
+            const nodeType = hasGetMethod
+                ? (nodeValue as any).get('type')
                 : (nodeValue as any)['type'];
-                
+
             if (nodeType && (nodeType.toString().toLowerCase() === 'iterator' || nodeType.toString().toLowerCase() === 'while')) {
                 lintErrors.push(...validateNestedNodes(nodeValue, document, nodeReferences, definedNodes, nodeName));
             }
@@ -188,8 +188,9 @@ function validateNestedNodes(
 function checkRequiredFields(node: any, nodeName: string, line: number): LintError[] {
     const errors: LintError[] = [];
 
-    // Get the node type first
-    const nodeType = node.get ? node.get('type') : node['type'];
+    // Get the node type first with proper type checking
+    const hasGetMethod = node && typeof node === 'object' && 'get' in node && typeof node.get === 'function';
+    const nodeType = hasGetMethod ? node.get('type') : node['type'];
 
     // If no type is specified, skip validation
     if (!nodeType) {
@@ -219,7 +220,7 @@ function checkRequiredFields(node: any, nodeName: string, line: number): LintErr
 
     // Check each required field for this node type
     requiredFields.forEach(field => {
-        const value = node.get ? node.get(field) : node[field];
+        const value = hasGetMethod ? node.get(field) : node[field];
 
         // Check if the field exists and has a non-empty value
         if (value === undefined || value === null ||
@@ -233,12 +234,64 @@ function checkRequiredFields(node: any, nodeName: string, line: number): LintErr
         }
     });
 
-    // Additional validation for iterator and while types
+    // Additional validation for agent types
     const nodeTypeStr = nodeType.toString().toLowerCase();
-    if (nodeTypeStr === 'iterator' || nodeTypeStr === 'while') {
-        const inputs = node.get ? node.get('inputs') : node['inputs'];
+    if (nodeTypeStr === 'agent') {
+        const inputs = hasGetMethod ? node.get('inputs') : node['inputs'];
         if (inputs) {
-            const subgraph = inputs.get ? inputs.get('subgraph') : inputs['subgraph'];
+            const inputsHasGet = inputs && typeof inputs === 'object' && 'get' in inputs && typeof inputs.get === 'function';
+
+            // Get agent_path to determine if init_kwargs should be checked
+            const agentPath = inputsHasGet ? inputs.get('agent_path') : inputs['agent_path'];
+            const agentPathStr = agentPath ? agentPath.toString() : '';
+
+            // Agents that don't require init_kwargs
+            const agentsWithoutInitKwargs = [
+                'genor_agents.custom_smart_judge_agents.identity_agent.IdentityAgent',
+                'genor_agents.information_extraction.ocrs.pdf_ocr_agent.PDFOCRAgent'
+            ];
+
+            const skipInitKwargs = agentsWithoutInitKwargs.includes(agentPathStr);
+
+            // Check required agent input fields
+            const requiredAgentFields = skipInitKwargs ? ['agent_path'] : ['agent_path', 'init_kwargs'];
+            requiredAgentFields.forEach(field => {
+                const value = inputsHasGet ? inputs.get(field) : inputs[field];
+
+                // For agent_path, check if it's empty string as well
+                const isEmpty = field === 'agent_path'
+                    ? (!value || (typeof value === 'string' && value.trim() === ''))
+                    : !value;
+
+                if (isEmpty) {
+                    errors.push(createLintError(
+                        line, 0,
+                        `Node "${nodeName}" of type "${nodeType}" is missing required field: inputs.${field}`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
+                }
+            });
+
+            // Check for either call_kwargs or call_args (they are equivalent)
+            const callKwargs = inputsHasGet ? inputs.get('call_kwargs') : inputs['call_kwargs'];
+            const callArgs = inputsHasGet ? inputs.get('call_args') : inputs['call_args'];
+
+            if (!callKwargs && !callArgs) {
+                errors.push(createLintError(
+                    line, 0,
+                    `Node "${nodeName}" of type "${nodeType}" is missing required field: inputs.call_kwargs`,
+                    vscode.DiagnosticSeverity.Error
+                ));
+            }
+        }
+    }
+
+    // Additional validation for iterator and while types
+    if (nodeTypeStr === 'iterator' || nodeTypeStr === 'while') {
+        const inputs = hasGetMethod ? node.get('inputs') : node['inputs'];
+        if (inputs) {
+            const inputsHasGet = inputs && typeof inputs === 'object' && 'get' in inputs && typeof inputs.get === 'function';
+            const subgraph = inputsHasGet ? inputs.get('subgraph') : inputs['subgraph'];
             if (!subgraph) {
                 errors.push(createLintError(
                     line, 0,
@@ -246,7 +299,8 @@ function checkRequiredFields(node: any, nodeName: string, line: number): LintErr
                     vscode.DiagnosticSeverity.Error
                 ));
             } else {
-                const nestedNodes = subgraph.get ? subgraph.get('nodes') : subgraph['nodes'];
+                const subgraphHasGet = subgraph && typeof subgraph === 'object' && 'get' in subgraph && typeof subgraph.get === 'function';
+                const nestedNodes = subgraphHasGet ? subgraph.get('nodes') : subgraph['nodes'];
                 if (!nestedNodes) {
                     errors.push(createLintError(
                         line, 0,
