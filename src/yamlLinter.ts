@@ -349,17 +349,77 @@ function checkDataTypes(node: any, nodeName: string, line: number): LintError[] 
 
     // Check if outputs exists and is valid
     if (outputs !== undefined) {
-        // Check if it's a YAMLSeq (YAML's array representation)
-        const isYAMLArray = outputs && typeof outputs === 'object' && outputs.items !== undefined;
-        // Check if it's a regular array
-        const isRegularArray = Array.isArray(outputs);
-
-        if (!isYAMLArray && !isRegularArray && typeof outputs !== 'object') {
+        // Check if outputs is null (happens when YAML has "outputs:" with no value)
+        if (outputs === null) {
             errors.push(createLintError(
                 line, 0,
-                `Node "${nodeName}": 'outputs' must be an array or object`,
+                `Node "${nodeName}": 'outputs' field is empty`,
                 vscode.DiagnosticSeverity.Error
             ));
+        } else {
+            // Check if it's a YAMLSeq (YAML's array representation)
+            const isYAMLArray = outputs && typeof outputs === 'object' && outputs.items !== undefined;
+            // Check if it's a regular array
+            const isRegularArray = Array.isArray(outputs);
+
+            if (!isYAMLArray && !isRegularArray && typeof outputs !== 'object') {
+                errors.push(createLintError(
+                    line, 0,
+                    `Node "${nodeName}": 'outputs' must be an array or object`,
+                    vscode.DiagnosticSeverity.Error
+                ));
+            } else {
+                // Check if outputs is empty or contains only empty items
+                let isEmpty = false;
+                let hasEmptyItems = false;
+
+                if (isRegularArray) {
+                    isEmpty = outputs.length === 0;
+                    hasEmptyItems = outputs.some(item =>
+                        item === null || item === undefined ||
+                        (typeof item === 'string' && item.trim() === '') ||
+                        item === '-'
+                    );
+                } else if (isYAMLArray) {
+                    isEmpty = !outputs.items || outputs.items.length === 0;
+                    hasEmptyItems = outputs.items && outputs.items.some((item: any) => {
+                        // Handle different YAML node types
+                        let value: unknown;
+
+                        if (item && typeof item === 'object') {
+                            // Check if it's a YAML scalar node
+                            if ('value' in item) {
+                                value = item.value;
+                            } else if ('toString' in item && typeof item.toString === 'function') {
+                                const stringValue = item.toString();
+                                value = stringValue;
+                            } else {
+                                value = item;
+                            }
+                        } else {
+                            value = item;
+                        }
+
+                        return value === null || value === undefined ||
+                            (typeof value === 'string' && (value.trim() === '' || value === '-')) ||
+                            value === '';
+                    });
+                }
+
+                if (isEmpty) {
+                    errors.push(createLintError(
+                        line, 0,
+                        `Node "${nodeName}": 'outputs' field is empty`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
+                } else if (hasEmptyItems) {
+                    errors.push(createLintError(
+                        line, 0,
+                        `Node "${nodeName}": 'outputs' field contains empty items`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
+                }
+            }
         }
     }
 
@@ -368,19 +428,81 @@ function checkDataTypes(node: any, nodeName: string, line: number): LintError[] 
 
     // Check if next exists and is valid
     if (next !== undefined) {
-        // Check if it's a YAMLSeq (YAML's array representation)
-        const isYAMLArray = next && typeof next === 'object' && next.items !== undefined;
-        // Check if it's a regular array
-        const isRegularArray = Array.isArray(next);
-        // Check if it's a string
-        const isString = typeof next === 'string';
-
-        if (!isYAMLArray && !isRegularArray && !isString) {
+        // Check if next is null (happens when YAML has "next:" with no value)
+        if (next === null) {
             errors.push(createLintError(
                 line, 0,
-                `Node "${nodeName}": 'next' must be an array or string`,
+                `Node "${nodeName}": 'next' field is empty`,
                 vscode.DiagnosticSeverity.Error
             ));
+            // Continue processing instead of returning early
+        } else {
+            // Check if it's a YAMLSeq (YAML's array representation)
+            const isYAMLArray = next && typeof next === 'object' && next.items !== undefined;
+            // Check if it's a regular array
+            const isRegularArray = Array.isArray(next);
+            // Check if it's a string
+            const isString = typeof next === 'string';
+
+            if (!isYAMLArray && !isRegularArray && !isString) {
+                errors.push(createLintError(
+                    line, 0,
+                    `Node "${nodeName}": 'next' must be an array or string`,
+                    vscode.DiagnosticSeverity.Error
+                ));
+            } else {
+                // Check if next is empty or contains empty items
+                let isEmpty = false;
+                let hasEmptyItems = false;
+
+                if (isString) {
+                    isEmpty = next.trim() === '' || next === '-';
+                } else if (isRegularArray) {
+                    isEmpty = next.length === 0;
+                    hasEmptyItems = next.some(item =>
+                        item === null || item === undefined ||
+                        (typeof item === 'string' && (item.trim() === '' || item === '-'))
+                    );
+                } else if (isYAMLArray) {
+                    isEmpty = !next.items || next.items.length === 0;
+                    hasEmptyItems = next.items && next.items.some((item: any) => {
+                        // Handle different YAML node types
+                        let value: unknown;
+
+                        if (item && typeof item === 'object') {
+                            // Check if it's a YAML scalar node
+                            if ('value' in item) {
+                                value = item.value;
+                            } else if ('toString' in item && typeof item.toString === 'function') {
+                                const stringValue = item.toString();
+                                value = stringValue;
+                            } else {
+                                value = item;
+                            }
+                        } else {
+                            value = item;
+                        }
+
+                        return value === null || value === undefined ||
+                            (typeof value === 'string' && (value.trim() === '' || value === '-')) ||
+                            value === '';
+                    });
+                }
+
+                if (isEmpty) {
+                    errors.push(createLintError(
+                        line, 0,
+                        `Node "${nodeName}": 'next' field is empty`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
+                } else if (hasEmptyItems) {
+                    errors.push(createLintError(
+                        line, 0,
+                        `Node "${nodeName}": 'next' field contains empty items`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
+                }
+            }
         }
     }
 
