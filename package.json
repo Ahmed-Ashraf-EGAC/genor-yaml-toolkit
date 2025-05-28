@@ -107,11 +107,6 @@
                     "when": "editorLangId == yaml",
                     "command": "genor-yaml-toolkit.insertAgent",
                     "group": "genor-yaml-toolkit@1"
-                },
-                {
-                    "when": "editorLangId == yaml",
-                    "command": "genor-yaml-toolkit.findAllReferences",
-                    "group": "genor-yaml-toolkit@2"
                 }
             ]
         }

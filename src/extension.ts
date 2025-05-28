@@ -98,46 +98,6 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(disposable);
 
-    let addAgentCommand = vscode.commands.registerCommand('genor-yaml-toolkit.addAgent', async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor || editor.document.languageId !== 'yaml') {
-            return;
-        }
-
-        const selection = await vscode.window.showQuickPick(
-            agentTemplates.map(t => t.name),
-            {
-                placeHolder: 'Select an agent template'
-            }
-        );
-
-        if (!selection) {
-            return;
-        }
-
-        const template = agentTemplates.find(t => t.name === selection)?.template;
-        if (!template) {
-            return;
-        }
-
-        // Get the current indentation level
-        const position = editor.selection.active;
-        const line = editor.document.lineAt(position.line);
-        const currentIndent = line.text.match(/^\s*/)?.[0] || '';
-
-        // Indent the template
-        const indentedTemplate = template
-            .split('\n')
-            .map(line => currentIndent + line)
-            .join('\n');
-
-        await editor.edit(editBuilder => {
-            editBuilder.insert(position, indentedTemplate + '\n');
-        });
-    });
-
-    context.subscriptions.push(addAgentCommand);
-
     let insertAgentCommand = vscode.commands.registerCommand('genor-yaml-toolkit.insertAgent', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.document.languageId !== 'yaml') {

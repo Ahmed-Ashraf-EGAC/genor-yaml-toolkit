@@ -1,13 +1,13 @@
 export interface AgentTemplate {
-  name: string;
-  template: string;
+    name: string;
+    template: string;
 }
 
 export const agentTemplates: AgentTemplate[] = [
-  {
-    name: "Code Agent",
-    template:
-      `code_agent:
+    {
+        name: "Code Agent",
+        template:
+            `code_agent:
   name: Code Agent
   type: agent
   inputs:
@@ -21,10 +21,10 @@ export const agentTemplates: AgentTemplate[] = [
     - sample_output
   next:
     - sample_next`
-  }, {
-    name: "Aggregator",
-    template:
-      `aggregator:
+    }, {
+        name: "Aggregator",
+        template:
+            `aggregator:
   name: Aggregator
   type: aggregator
   outputs:
@@ -34,10 +34,10 @@ export const agentTemplates: AgentTemplate[] = [
       param_name: output_param
   next:
     - sample_next`
-  }, {
-    name: "IfElse",
-    template:
-      `ifelse:
+    }, {
+        name: "IfElse",
+        template:
+            `ifelse:
   name: IfElse
   type: ifelse
   conditions:
@@ -49,10 +49,10 @@ export const agentTemplates: AgentTemplate[] = [
         - sample_next
     - else:
         - sample_next`
-  }, {
-    name: "Iterator",
-    template:
-      `iterator:
+    }, {
+        name: "Iterator",
+        template:
+            `iterator:
   name: Iterator
   type: iterator
   inputs:
@@ -62,10 +62,10 @@ export const agentTemplates: AgentTemplate[] = [
         
   next:
     - sample_next`
-  },{
-    name: "LLM Agent",
-    template:
-      `llm_agent:
+    }, {
+        name: "LLM Agent",
+        template:
+            `llm_agent:
   name: LLM Agent
   type: agent
   inputs:
@@ -86,6 +86,6 @@ export const agentTemplates: AgentTemplate[] = [
     - response
   next:
     - sample_next`
-  },
+    },
 ];
 
