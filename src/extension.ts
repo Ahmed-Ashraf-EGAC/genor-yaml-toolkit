@@ -180,39 +180,270 @@ export function activate(context: vscode.ExtensionContext) {
         if (editor && editor.document.languageId === 'yaml' && !editor.selection.isEmpty) {
             templateContent = editor.document.getText(editor.selection);
         } else {
-            // Create a new document for multi-line template input
-            const newDoc = await vscode.workspace.openTextDocument({
-                content: `# Enter your YAML template below:\n# Example:\nmy_agent:\n  name: My Agent\n  type: agent\n  inputs:\n    agent_path: "path.to.agent"\n  outputs:\n    - output`,
-                language: 'yaml'
-            });
-
-            await vscode.window.showTextDocument(newDoc);
-
-            const result = await vscode.window.showInformationMessage(
-                'Edit the template in the opened document, then click "Save Template" when ready.',
-                'Save Template',
-                'Cancel'
+            // Create a webview panel for template input
+            const panel = vscode.window.createWebviewPanel(
+                'templateEditor',
+                'Create Template',
+                vscode.ViewColumn.One,
+                {
+                    enableScripts: true
+                }
             );
 
-            if (result === 'Save Template') {
-                const currentEditor = vscode.window.activeTextEditor;
-                if (currentEditor && currentEditor.document === newDoc) {
-                    templateContent = currentEditor.document.getText();
-                    // Remove the comment lines
-                    templateContent = templateContent
-                        .split('\n')
-                        .filter(line => !line.trim().startsWith('#'))
-                        .join('\n')
-                        .trim();
-                }
+            const defaultTemplate = `my_agent:
+  name: My Agent
+  type: agent
+  inputs:
+    agent_path: "path.to.agent"
+  outputs:
+    - output`;
 
-                // Close the temporary document
-                await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-            } else {
-                // Close the temporary document
-                await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
-                return;
-            }
+            panel.webview.html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { 
+                            font-family: 'Courier New', monospace; 
+                            margin: 20px; 
+                            background-color: var(--vscode-editor-background);
+                            color: var(--vscode-editor-foreground);
+                        }
+                        textarea { 
+                            width: 100%; 
+                            height: 400px; 
+                            font-family: 'Courier New', monospace; 
+                            font-size: 14px;
+                            border: 1px solid var(--vscode-input-border);
+                            padding: 10px;
+                            background-color: var(--vscode-input-background);
+                            color: var(--vscode-input-foreground);
+                            resize: vertical;
+                            tab-size: 2;
+                        }
+                        button { 
+                            margin: 10px 5px; 
+                            padding: 10px 20px; 
+                            font-size: 14px;
+                            border: none;
+                            cursor: pointer;
+                        }
+                        .save-btn { 
+                            background-color: var(--vscode-button-background); 
+                            color: var(--vscode-button-foreground); 
+                        }
+                        .save-btn:hover {
+                            background-color: var(--vscode-button-hoverBackground);
+                        }
+                        .cancel-btn { 
+                            background-color: var(--vscode-button-secondaryBackground); 
+                            color: var(--vscode-button-secondaryForeground); 
+                        }
+                        .cancel-btn:hover {
+                            background-color: var(--vscode-button-secondaryHoverBackground);
+                        }
+                        h3 {
+                            color: var(--vscode-foreground);
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h3>Enter your YAML template:</h3>
+                    <textarea id="templateContent" placeholder="Enter your YAML template here...">${defaultTemplate}</textarea>
+                    <br>
+                    <button class="save-btn" onclick="saveTemplate()">Save Template</button>
+                    <button class="cancel-btn" onclick="cancelTemplate()">Cancel</button>
+                    
+                    <script>
+                        const vscode = acquireVsCodeApi();
+                        
+                        // Undo/Redo history management
+                        let undoStack = [];
+                        let redoStack = [];
+                        let lastValue = '';
+                        
+                        const textarea = document.getElementById('templateContent');
+                        
+                        // Initialize undo stack
+                        function saveState() {
+                            if (textarea.value !== lastValue) {
+                                undoStack.push({
+                                    value: lastValue,
+                                    selectionStart: textarea.selectionStart,
+                                    selectionEnd: textarea.selectionEnd
+                                });
+                                if (undoStack.length > 50) { // Limit undo stack size
+                                    undoStack.shift();
+                                }
+                                redoStack = []; // Clear redo stack when new action is performed
+                                lastValue = textarea.value;
+                            }
+                        }
+                        
+                        // Initialize
+                        lastValue = textarea.value;
+                        
+                        // Save state on input
+                        textarea.addEventListener('input', function() {
+                            setTimeout(saveState, 0);
+                        });
+                        
+                        // Handle keyboard shortcuts and tab indentation
+                        textarea.addEventListener('keydown', function(e) {
+                            // Handle Ctrl+Z (Undo)
+                            if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (undoStack.length > 0) {
+                                    const state = undoStack.pop();
+                                    redoStack.push({
+                                        value: textarea.value,
+                                        selectionStart: textarea.selectionStart,
+                                        selectionEnd: textarea.selectionEnd
+                                    });
+                                    textarea.value = state.value;
+                                    textarea.selectionStart = state.selectionStart;
+                                    textarea.selectionEnd = state.selectionEnd;
+                                    lastValue = textarea.value;
+                                }
+                                return;
+                            }
+                            
+                            // Handle Ctrl+Y (Redo)
+                            if (e.ctrlKey && e.key === 'y') {
+                                e.preventDefault();
+                                if (redoStack.length > 0) {
+                                    const state = redoStack.pop();
+                                    undoStack.push({
+                                        value: textarea.value,
+                                        selectionStart: textarea.selectionStart,
+                                        selectionEnd: textarea.selectionEnd
+                                    });
+                                    textarea.value = state.value;
+                                    textarea.selectionStart = state.selectionStart;
+                                    textarea.selectionEnd = state.selectionEnd;
+                                    lastValue = textarea.value;
+                                }
+                                return;
+                            }
+                            
+                            // Handle Tab and Shift+Tab
+                            if (e.key === 'Tab') {
+                                e.preventDefault();
+                                saveState(); // Save state before modification
+                                
+                                const start = textarea.selectionStart;
+                                const end = textarea.selectionEnd;
+                                const value = textarea.value;
+                                
+                                if (e.shiftKey) {
+                                    // Shift+Tab: Remove indentation
+                                    if (start === end) {
+                                        // No selection, handle current line
+                                        const lineStart = value.lastIndexOf('\\n', start - 1) + 1;
+                                        const lineEnd = value.indexOf('\\n', start);
+                                        const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
+                                        const line = value.substring(lineStart, actualLineEnd);
+                                        
+                                        if (line.startsWith('  ')) {
+                                            // Remove 2 spaces
+                                            textarea.value = value.substring(0, lineStart) + line.substring(2) + value.substring(actualLineEnd);
+                                            textarea.selectionStart = textarea.selectionEnd = Math.max(lineStart, start - 2);
+                                        } else if (line.startsWith(' ')) {
+                                            // Remove 1 space
+                                            textarea.value = value.substring(0, lineStart) + line.substring(1) + value.substring(actualLineEnd);
+                                            textarea.selectionStart = textarea.selectionEnd = Math.max(lineStart, start - 1);
+                                        }
+                                    } else {
+                                        // Selection exists, unindent all selected lines
+                                        const beforeSelection = value.substring(0, start);
+                                        const selectedText = value.substring(start, end);
+                                        const afterSelection = value.substring(end);
+                                        
+                                        const lines = selectedText.split('\\n');
+                                        const unindentedLines = lines.map(line => {
+                                            if (line.startsWith('  ')) {
+                                                return line.substring(2);
+                                            } else if (line.startsWith(' ')) {
+                                                return line.substring(1);
+                                            }
+                                            return line;
+                                        });
+                                        
+                                        const unindentedText = unindentedLines.join('\\n');
+                                        textarea.value = beforeSelection + unindentedText + afterSelection;
+                                        
+                                        // Maintain selection
+                                        textarea.selectionStart = start;
+                                        textarea.selectionEnd = start + unindentedText.length;
+                                    }
+                                } else {
+                                    // Tab: Add indentation
+                                    if (start === end) {
+                                        // No selection, just insert 2 spaces
+                                        textarea.value = value.substring(0, start) + '  ' + value.substring(end);
+                                        textarea.selectionStart = textarea.selectionEnd = start + 2;
+                                    } else {
+                                        // Selection exists, indent all selected lines
+                                        const beforeSelection = value.substring(0, start);
+                                        const selectedText = value.substring(start, end);
+                                        const afterSelection = value.substring(end);
+                                        
+                                        const lines = selectedText.split('\\n');
+                                        const indentedLines = lines.map(line => '  ' + line);
+                                        const indentedText = indentedLines.join('\\n');
+                                        
+                                        textarea.value = beforeSelection + indentedText + afterSelection;
+                                        
+                                        // Maintain selection
+                                        textarea.selectionStart = start;
+                                        textarea.selectionEnd = start + indentedText.length;
+                                    }
+                                }
+                                
+                                lastValue = textarea.value;
+                            }
+                        });
+                        
+                        function saveTemplate() {
+                            const content = document.getElementById('templateContent').value;
+                            vscode.postMessage({
+                                command: 'saveTemplate',
+                                content: content
+                            });
+                        }
+                        
+                        function cancelTemplate() {
+                            vscode.postMessage({
+                                command: 'cancelTemplate'
+                            });
+                        }
+                    </script>
+                </body>
+                </html>
+            `;
+
+            // Handle messages from the webview
+            const messagePromise = new Promise<string | null>((resolve) => {
+                panel.webview.onDidReceiveMessage(message => {
+                    switch (message.command) {
+                        case 'saveTemplate':
+                            resolve(message.content);
+                            panel.dispose();
+                            break;
+                        case 'cancelTemplate':
+                            resolve(null);
+                            panel.dispose();
+                            break;
+                    }
+                });
+
+                // Handle panel disposal
+                panel.onDidDispose(() => {
+                    resolve(null);
+                });
+            });
+
+            templateContent = await messagePromise || '';
         }
 
         if (!templateContent || templateContent.trim().length === 0) {
