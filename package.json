@@ -50,7 +50,7 @@
             },
             {
                 "command": "genor-yaml-toolkit.createTemplate",
-                "title": "Create GenOr Custom Template",
+                "title": "Create GenOr Agent Custom Template",
                 "category": "Genor YAML Toolkit"
             },
             {

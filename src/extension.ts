@@ -129,15 +129,16 @@ export function activate(context: vscode.ExtensionContext) {
         const line = editor.document.lineAt(position.line);
         const currentIndent = line.text.match(/^\s*/)?.[0] || '';
 
-        const indentedTemplate = selection.template
-            .split('\n')
-            .map((line, index) => {
-                // Don't indent the first line (agent name)
-                if (index === 0) {
-                    return line;
+        // Properly format the template with preserved line breaks
+        const templateLines = selection.template.split('\n');
+        const indentedTemplate = templateLines
+            .map((templateLine, index) => {
+                // Don't indent the first line if it starts at the beginning
+                if (index === 0 && templateLine.match(/^\S/)) {
+                    return currentIndent + templateLine;
                 }
-                // Indent all other lines
-                return currentIndent + line;
+                // For subsequent lines, preserve their relative indentation
+                return currentIndent + templateLine;
             })
             .join('\n');
 
@@ -179,20 +180,43 @@ export function activate(context: vscode.ExtensionContext) {
         if (editor && editor.document.languageId === 'yaml' && !editor.selection.isEmpty) {
             templateContent = editor.document.getText(editor.selection);
         } else {
-            // Otherwise, prompt user to enter template content
-            templateContent = await vscode.window.showInputBox({
-                prompt: 'Enter the YAML template content',
-                placeHolder: 'agent_name:\n  name: Agent Name\n  type: agent\n  ...',
-                validateInput: (value) => {
-                    if (!value || value.trim().length === 0) {
-                        return 'Template content cannot be empty';
-                    }
-                    return null;
+            // Create a new document for multi-line template input
+            const newDoc = await vscode.workspace.openTextDocument({
+                content: `# Enter your YAML template below:\n# Example:\nmy_agent:\n  name: My Agent\n  type: agent\n  inputs:\n    agent_path: "path.to.agent"\n  outputs:\n    - output`,
+                language: 'yaml'
+            });
+
+            await vscode.window.showTextDocument(newDoc);
+
+            const result = await vscode.window.showInformationMessage(
+                'Edit the template in the opened document, then click "Save Template" when ready.',
+                'Save Template',
+                'Cancel'
+            );
+
+            if (result === 'Save Template') {
+                const currentEditor = vscode.window.activeTextEditor;
+                if (currentEditor && currentEditor.document === newDoc) {
+                    templateContent = currentEditor.document.getText();
+                    // Remove the comment lines
+                    templateContent = templateContent
+                        .split('\n')
+                        .filter(line => !line.trim().startsWith('#'))
+                        .join('\n')
+                        .trim();
                 }
-            }) || '';
+
+                // Close the temporary document
+                await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+            } else {
+                // Close the temporary document
+                await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+                return;
+            }
         }
 
-        if (!templateContent) {
+        if (!templateContent || templateContent.trim().length === 0) {
+            vscode.window.showWarningMessage('Template content cannot be empty');
             return;
         }
 
