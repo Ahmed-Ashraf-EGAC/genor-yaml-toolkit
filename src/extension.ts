@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { parseDocument } from 'yaml';
-import { agentTemplates } from './agentTemplates';
+import { agentTemplates, TemplateManager } from './agentTemplates';
 import { activateLanguageFeatures } from './yamlLanguageConfiguration';
 import { lintYaml } from './yamlLinter';
 
@@ -62,6 +62,8 @@ function restorePromptBlocks(formattedText: string, blocks: string[]): string {
 }
 
 export function activate(context: vscode.ExtensionContext) {
+    const templateManager = new TemplateManager(context);
+
     let disposable = vscode.commands.registerCommand('genor-yaml-toolkit.formatYaml', async () => {
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'yaml') {
@@ -104,20 +106,21 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        // Simplified quick pick that only shows names
-        const selection = await vscode.window.showQuickPick(
-            agentTemplates.map(t => t.name),
-            {
-                placeHolder: 'Select an agent template'
-            }
-        );
+        // Get all templates (built-in + custom)
+        const allTemplates = templateManager.getAllTemplates(agentTemplates);
+
+        // Create quick pick items with indicators for custom templates
+        const quickPickItems = allTemplates.map(template => ({
+            label: template.name,
+            description: template.isCustom ? '(Custom)' : '(Built-in)',
+            template: template.template
+        }));
+
+        const selection = await vscode.window.showQuickPick(quickPickItems, {
+            placeHolder: 'Select an agent template'
+        });
 
         if (!selection) {
-            return;
-        }
-
-        const template = agentTemplates.find(t => t.name === selection)?.template;
-        if (!template) {
             return;
         }
 
@@ -126,7 +129,7 @@ export function activate(context: vscode.ExtensionContext) {
         const line = editor.document.lineAt(position.line);
         const currentIndent = line.text.match(/^\s*/)?.[0] || '';
 
-        const indentedTemplate = template
+        const indentedTemplate = selection.template
             .split('\n')
             .map((line, index) => {
                 // Don't indent the first line (agent name)
@@ -144,6 +147,106 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(insertAgentCommand);
+
+    // Command to create a new custom template
+    let createTemplateCommand = vscode.commands.registerCommand('genor-yaml-toolkit.createTemplate', async () => {
+        const editor = vscode.window.activeTextEditor;
+
+        // Get template name from user
+        const templateName = await vscode.window.showInputBox({
+            prompt: 'Enter a name for your custom template',
+            placeHolder: 'My Custom Agent',
+            validateInput: (value) => {
+                if (!value || value.trim().length === 0) {
+                    return 'Template name cannot be empty';
+                }
+                // Check if name already exists
+                const existingTemplates = templateManager.getAllTemplates(agentTemplates);
+                if (existingTemplates.some(t => t.name === value.trim())) {
+                    return 'A template with this name already exists';
+                }
+                return null;
+            }
+        });
+
+        if (!templateName) {
+            return;
+        }
+
+        let templateContent = '';
+
+        // If there's an active editor with selected text, use it as template
+        if (editor && editor.document.languageId === 'yaml' && !editor.selection.isEmpty) {
+            templateContent = editor.document.getText(editor.selection);
+        } else {
+            // Otherwise, prompt user to enter template content
+            templateContent = await vscode.window.showInputBox({
+                prompt: 'Enter the YAML template content',
+                placeHolder: 'agent_name:\n  name: Agent Name\n  type: agent\n  ...',
+                validateInput: (value) => {
+                    if (!value || value.trim().length === 0) {
+                        return 'Template content cannot be empty';
+                    }
+                    return null;
+                }
+            }) || '';
+        }
+
+        if (!templateContent) {
+            return;
+        }
+
+        try {
+            await templateManager.saveCustomTemplate(templateName.trim(), templateContent);
+            vscode.window.showInformationMessage(`Custom template "${templateName}" saved successfully!`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to save template: ${error}`);
+        }
+    });
+
+    context.subscriptions.push(createTemplateCommand);
+
+    // Command to manage custom templates
+    let manageTemplatesCommand = vscode.commands.registerCommand('genor-yaml-toolkit.manageTemplates', async () => {
+        const customTemplates = templateManager.getCustomTemplates();
+
+        if (customTemplates.length === 0) {
+            vscode.window.showInformationMessage('No custom templates found. Create one first!');
+            return;
+        }
+
+        const quickPickItems = customTemplates.map(template => ({
+            label: template.name,
+            description: `Created: ${new Date(template.createdAt).toLocaleDateString()}`,
+            detail: 'Click to delete this template',
+            template: template
+        }));
+
+        const selection = await vscode.window.showQuickPick(quickPickItems, {
+            placeHolder: 'Select a custom template to delete'
+        });
+
+        if (!selection) {
+            return;
+        }
+
+        const confirmDelete = await vscode.window.showWarningMessage(
+            `Are you sure you want to delete the template "${selection.template.name}"?`,
+            'Delete',
+            'Cancel'
+        );
+
+        if (confirmDelete === 'Delete') {
+            try {
+                await templateManager.deleteCustomTemplate(selection.template.id);
+                vscode.window.showInformationMessage(`Template "${selection.template.name}" deleted successfully!`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to delete template: ${error}`);
+            }
+        }
+    });
+
+    context.subscriptions.push(manageTemplatesCommand);
 
     // Add language features
     const languageFeatures = activateLanguageFeatures();
