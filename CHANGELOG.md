@@ -3,6 +3,7 @@
 ## [0.1.1] - 2025-05-27
 
 ### 🎉 Major New Features
+
 #### **Introduced YAML Linter** with real-time validation and VS Code diagnostics
 
 - **Node Type Validation** for agent, ifelse, aggregator, iterator, and while nodes
@@ -11,7 +12,7 @@
 
 ## [0.1.0] - 2025-05-24
 
-### ✨ New Features
+### ✨ New Features & Improvements
 
 #### 1️⃣ Extension Renamed to GenOr YAML Toolkit
 
@@ -35,7 +36,7 @@ Find all references to a node across all YAML files in your workspace.
 
 ## [0.0.3] - 2025-05-23
 
-### ✨ New Features
+### 🆕 Additional Features
 
 #### 1️⃣ Agent Template Support
 

@@ -45,11 +45,18 @@
             },
             {
                 "command": "genor-yaml-toolkit.insertAgent",
-                "title": "GenOr: Insert Agent"
+                "title": "Insert GenOr Agent Template",
+                "category": "Genor YAML Toolkit"
             },
             {
-                "command": "genor-yaml-toolkit.findAllReferences",
-                "title": "YAML: Find All References Across Files"
+                "command": "genor-yaml-toolkit.createTemplate",
+                "title": "Create GenOr Agent Custom Template",
+                "category": "Genor YAML Toolkit"
+            },
+            {
+                "command": "genor-yaml-toolkit.manageTemplates",
+                "title": "Manage GenOr Custom Templates",
+                "category": "Genor YAML Toolkit"
             },
             {
                 "command": "genor-yaml-toolkit.lintYaml",
@@ -109,8 +116,8 @@
                     "group": "genor-yaml-toolkit@1"
                 },
                 {
-                    "when": "editorLangId == yaml",
-                    "command": "genor-yaml-toolkit.findAllReferences",
+                    "when": "resourceLangId == yaml",
+                    "command": "genor-yaml-toolkit.createTemplate",
                     "group": "genor-yaml-toolkit@2"
                 }
             ]
