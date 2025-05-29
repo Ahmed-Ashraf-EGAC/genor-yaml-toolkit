@@ -62,6 +62,10 @@
                 "command": "genor-yaml-toolkit.lintYaml",
                 "title": "Lint YAML",
                 "category": "Genor YAML Toolkit"
+            },
+            {
+                "command": "genor-yaml-toolkit.findAllDefinitions",
+                "title": "Find All Definitions"
             }
         ],
         "configuration": {
@@ -94,6 +98,11 @@
                 "command": "genor-yaml-toolkit.findAllReferences",
                 "key": "ctrl+shift+f12",
                 "when": "editorLangId == yaml"
+            },
+            {
+                "command": "genor-yaml-toolkit.findAllDefinitions",
+                "key": "ctrl+shift+click",
+                "when": "editorTextFocus && resourceExtname =~ /\\.(yml|yaml)$/"
             }
         ],
         "formatters": [
