@@ -307,8 +307,3 @@ async function findReferencesAcrossFiles(nodeName: string): Promise<void> {
         }
     });
 }
-
-/**
- * Find definitions of a node across all YAML files in the workspace
- * @param nodeName The name of the node to find definitions for
- */
