@@ -32,7 +32,6 @@ export function lintYaml(document: vscode.TextDocument) {
 
     const nodes = doc.get('nodes');
     if (!nodes || !(nodes instanceof YAMLMap)) {
-        lintErrors.push(createLintError(0, 0, "Missing or invalid 'nodes' section", vscode.DiagnosticSeverity.Error));
         collection.set(document.uri, lintErrors.map(convertLintErrorToDiagnostic));
         return;
     }
